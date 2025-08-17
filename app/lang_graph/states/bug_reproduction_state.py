@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Annotated, Mapping, Sequence, TypedDict
 
 from langchain_core.messages import BaseMessage
@@ -24,5 +25,5 @@ class BugReproductionState(TypedDict):
 
     reproduced_bug: bool
     reproduced_bug_failure_log: str
-    reproduced_bug_file: str
+    reproduced_bug_file: Path
     reproduced_bug_commands: Sequence[str]

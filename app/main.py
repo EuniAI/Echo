@@ -69,7 +69,7 @@ def reproduce_bug(
     build_commands: Sequence[str] = None,
     test_commands: Sequence[str] = None,
     workdir: str = None,
-):
+) -> tuple[bool, None, None, None] | tuple[bool, str, str, str]:
     # Set up a dedicated logger for this thread
     logger = logging.getLogger(f"thread-{threading.get_ident()}.prometheus")
     logger.setLevel(getattr(logging, settings.LOGGING_LEVEL))
@@ -212,7 +212,7 @@ def main(
         )
         predictions[github_issue["instance_id"]] = {
             "reproduced_bug": reproduced_bug,
-            "reproduced_bug_file": reproduced_bug_file,
+            "reproduced_bug_file": str(reproduced_bug_file),
             "reproduced_bug_commands": reproduced_bug_commands,
             "reproduced_bug_patch": reproduced_bug_patch,
         }
