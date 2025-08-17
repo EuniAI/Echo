@@ -111,6 +111,9 @@ def reproduce_bug(
         )
     else:
         container = GeneralContainer(repo_path)
+    # Start the container
+    container.build_docker_image()
+    container.start_container()
 
     # Initialize the bug reproduce graph
     bug_reproduction_subgraph = BugReproductionSubgraph(
@@ -133,6 +136,8 @@ def reproduce_bug(
         logger.error(f"Error in answer_issue: {str(e)}\n{traceback.format_exc()}")
         return False, None, None, None
     finally:
+        # Clean up resources
+        container.cleanup()
         git_repo.reset_repository()
         logger.removeHandler(file_handler)
         file_handler.close()
