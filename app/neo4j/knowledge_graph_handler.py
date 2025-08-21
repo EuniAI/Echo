@@ -471,11 +471,14 @@ class KnowledgeGraphHandler:
         Returns:
             int: The next available node id (max id + 1), or 0 if no nodes exist.
         """
-        query = "MATCH (n) RETURN max(id(n)) AS max_id"
+        query = """
+        MATCH (n)
+        WHERE n.node_id IS NOT NULL
+        RETURN coalesce(max(n.node_id), -1) AS max_node_id"""
         with self.driver.session() as session:
-            result = session.run(query)
-            max_id = result.single()["max_id"]
-            return 0 if max_id is None else max_id + 1
+            rec = session.run(query).single()
+            max_node_id = rec["max_node_id"]
+            return int(max_node_id) + 1
 
     def clear_knowledge_graph(self, root_node_id: int):
         """

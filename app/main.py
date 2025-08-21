@@ -142,6 +142,11 @@ def reproduce_bug(
         logger.removeHandler(file_handler)
         file_handler.close()
 
+    # Clear the knowledge graph from Neo4j after use
+    knowledge_graph_service.clear_kg(knowledge_graph.root_node_id)
+    # Clear the repository from the repository service
+    repo_path.rmdir()
+
     print(f"reproduced_bug: {output_states['reproduced_bug']}")
     print(f"reproduced_bug_file: {output_states['reproduced_bug_file']}")
     print(f"reproduced_bug_commands: {output_states['reproduced_bug_commands']}")
