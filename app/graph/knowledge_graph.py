@@ -17,8 +17,8 @@ This knowledge graph will be persisted in a graph database (neo4j), where an AI 
 codebase to find the most relevant context for the user query.
 """
 
+import asyncio
 import itertools
-import logging
 from collections import defaultdict, deque
 from pathlib import Path
 from typing import Mapping, Optional, Sequence
@@ -42,6 +42,7 @@ from app.graph.graph_types import (
     Neo4jTextNode,
     TextNode,
 )
+from app.utils.logger_manager import get_logger
 
 
 class KnowledgeGraph:
@@ -78,9 +79,17 @@ class KnowledgeGraph:
         self._next_node_id = root_node_id + len(self._knowledge_graph_nodes)
 
         self._file_graph_builder = FileGraphBuilder(max_ast_depth, chunk_size, chunk_overlap)
-        self._logger = logging.getLogger("prometheus.graph.knowledge_graph")
+        self._logger = get_logger(__name__)
 
-    def build_graph(self, root_dir: Path):
+    async def build_graph(self, root_dir: Path):
+        """Asynchronously builds knowledge graph for a codebase at a location.
+
+        Args:
+            root_dir: The codebase root directory.
+        """
+        await asyncio.to_thread(self._build_graph, root_dir)
+
+    def _build_graph(self, root_dir: Path):
         """Builds knowledge graph for a codebase at a location.
 
         Args:
@@ -109,6 +118,11 @@ class KnowledgeGraph:
             if file.is_dir():
                 self._logger.info(f"Processing directory {file}")
                 for child_file in sorted(file.iterdir()):
+                    # Skip if the file does not exist (broken symlink).
+                    if not child_file.exists():
+                        self._logger.info(f"Skip parsing {child_file} because it does not exist")
+                        continue
+
                     # Skip if the child is not a file or it is not supported by the file graph builder.
                     if child_file.is_file() and not self._file_graph_builder.supports_file(
                         child_file
@@ -411,6 +425,19 @@ class KnowledgeGraph:
 
     def get_neo4j_parent_of_edges(self) -> Sequence[Neo4jParentOfEdge]:
         return [kg_edge.to_neo4j_edge() for kg_edge in self.get_parent_of_edges()]
+
+    def get_parent_to_children_map(self) -> Mapping[int, Sequence[KnowledgeGraphNode]]:
+        """
+        Returns a mapping from parent AST node IDs to their child AST nodes.
+        """
+        parent_of_edges = self.get_parent_of_edges()
+        parent_to_children = {}
+        for edge in parent_of_edges:
+            parent_id = edge.source.node_id
+            if parent_id not in parent_to_children:
+                parent_to_children[parent_id] = []
+            parent_to_children[parent_id].append(edge.target)
+        return parent_to_children
 
     def __eq__(self, other: "KnowledgeGraph") -> bool:
         if not isinstance(other, KnowledgeGraph):

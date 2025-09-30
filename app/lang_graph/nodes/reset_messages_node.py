@@ -36,9 +36,7 @@ class ResetMessagesNode:
             be reset during node execution.
         """
         self.message_state_key = message_state_key
-        self._logger = logging.getLogger(
-            f"thread-{threading.get_ident()}.prometheus.lang_graph.nodes.reset_messages_node"
-        )
+        self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
 
     def __call__(self, state: Dict):
         """Resets the specified message state for the next iteration.

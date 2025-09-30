@@ -13,7 +13,7 @@ This agent is used for automatically reproducing software bugs by utilizing larg
 
 ## Requirements
 
-* Python 3.8+
+* Python 3.11+
 * Neo4j database
 * Docker
 * Git
@@ -53,6 +53,10 @@ python -m app.main --dataset_name="your_dataset" --github_token="your_token"
 * `--dataset_name`, `-d`: SWE-bench dataset name (required)
 * `--github_token`, `-g`: GitHub access token (optional)
 * `--file`, `-f`: File to save the prediction results (defaults to `predictions_XXX.json` with a timestamp)
+
+## Start neo4j service
+
+You should first start neo4j service then setting the config of you neo4j
 
 ## Workflow
 

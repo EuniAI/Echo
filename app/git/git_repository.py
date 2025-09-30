@@ -1,12 +1,14 @@
 """Git repository management module."""
 
-import logging
+import asyncio
 import shutil
 import tempfile
 from pathlib import Path
 from typing import Optional, Sequence
 
 from git import Git, GitCommandError, InvalidGitRepositoryError, Repo
+
+from app.utils.logger_manager import get_logger
 
 
 class GitRepository:
@@ -22,12 +24,12 @@ class GitRepository:
         """
         Initialize a GitRepository instance.
         """
-        self._logger = logging.getLogger("prometheus.git.git_repository")
+        self._logger = get_logger(__name__)
 
         # Configure git command to use our logger
         g = Git()
         type(g).GIT_PYTHON_TRACE = "full"
-        git_cmd_logger = logging.getLogger("git.cmd")
+        git_cmd_logger = get_logger("git.cmd")
 
         # Ensure git command output goes to our logger
         for handler in git_cmd_logger.handlers:
@@ -48,26 +50,31 @@ class GitRepository:
         except ValueError:
             self.default_branch = self.repo.active_branch.name
 
-    def from_clone_repository(
-        self, https_url: str, github_access_token: str, target_directory: Path
+    async def from_clone_repository(
+        self, https_url: str, github_access_token: str | None, target_directory: Path
     ):
         """Clone a remote repository using HTTPS authentication.
 
         Args:
           https_url: HTTPS URL of the remote repository.
-          github_access_token: GitHub access token for authentication.
+          github_access_token: GitHub access token for authentication. None for public repositories.
           target_directory: Directory where the repository will be cloned.
 
         Returns:
             Repo: GitPython Repo object representing the cloned repository.
         """
-        https_url = https_url.replace("https://", f"https://x-access-token:{github_access_token}@")
+        # Only modify the URL with token authentication if a token is provided
+        if github_access_token:
+            https_url = https_url.replace(
+                "https://", f"https://x-access-token:{github_access_token}@"
+            )
+
         repo_name = https_url.split("/")[-1].split(".")[0]
         local_path = target_directory / repo_name
         if local_path.exists():
             shutil.rmtree(local_path)
 
-        self.repo = Repo.clone_from(https_url, local_path)
+        self.repo = await asyncio.to_thread(Repo.clone_from, https_url, local_path)
         self.playground_path = local_path
         self._set_default_branch()
 
@@ -162,7 +169,7 @@ class GitRepository:
             self.apply_patch(patch)
             self.repo.git.add(A=True)
             self.repo.index.commit(commit_message)
-            self.repo.git.push("--set-upstream", "origin", branch_name)
+            await asyncio.to_thread(self.repo.git.push, "--set-upstream", "origin", branch_name)
         except GitCommandError as e:
             raise e
         finally:

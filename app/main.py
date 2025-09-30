@@ -15,6 +15,7 @@ from app.docker.general_container import GeneralContainer
 from app.docker.user_defined_container import UserDefinedContainer
 from app.lang_graph.subgraphs.bug_reproduction_subgraph import BugReproductionSubgraph
 from app.services.knowledge_graph_service import KnowledgeGraphService
+from app.services.database_service import DatabaseService
 from app.services.llm_service import LLMService
 from app.services.neo4j_service import Neo4jService
 from app.services.repository_service import RepositoryService
@@ -41,8 +42,10 @@ knowledge_graph_service = KnowledgeGraphService(
     settings.KNOWLEDGE_GRAPH_CHUNK_OVERLAP,
 )
 
+database_service = DatabaseService(settings.DATABASE_URL)
+
 repository_service = RepositoryService(
-    kg_service=knowledge_graph_service, working_dir=settings.WORKING_DIRECTORY
+    kg_service=knowledge_graph_service, db_service=database_service, working_dir=settings.WORKING_DIRECTORY
 )
 
 llm_service = LLMService(

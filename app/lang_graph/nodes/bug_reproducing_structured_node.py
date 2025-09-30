@@ -6,7 +6,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-from app.lang_graph.states.bug_reproduction_state import BugReproductionState
+from app.lang_graph.subgraphs.bug_reproduction_state import BugReproductionState
 from app.utils.issue_util import format_issue_comments
 from app.utils.lang_graph_util import (
     format_agent_tool_message_history,
@@ -16,7 +16,8 @@ from app.utils.lang_graph_util import (
 
 class BugReproducingStructuredOutput(BaseModel):
     reproduced_bug: bool = Field(
-        description="True ONLY if test fails as described in the issue and uses provided examples if any exist"
+        description="True ONLY if test fails as described in the issue and uses provided examples if any exist",
+        default=False,
     )
     reproduced_bug_failure_log: str = Field(
         description="Complete test execution log. If test passes, include explanation that test should fail to demonstrate the bug"
@@ -135,9 +136,7 @@ Log from executing bug reproducing file:
         )
         structured_llm = model.with_structured_output(BugReproducingStructuredOutput)
         self.model = prompt | structured_llm
-        self._logger = logging.getLogger(
-            f"thread-{threading.get_ident()}.prometheus.lang_graph.nodes.bug_reproducing_structured_node"
-        )
+        self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
 
     def __call__(self, state: BugReproductionState):
         bug_reproducing_log = format_agent_tool_message_history(

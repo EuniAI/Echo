@@ -34,16 +34,17 @@ class UpdateContainerNode:
         """
         self.container = container
         self.git_repo = git_repo
-        self._logger = logging.getLogger(
-            f"thread-{threading.get_ident()}.prometheus.lang_graph.nodes.update_container_node"
-        )
+        self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
 
     def __call__(self, _: Dict):
         """Synchronizes the current project state with the container."""
         if self.container.is_running():
             self._logger.info("Copy over all updated files to the container")
             all_files_patch = self.git_repo.get_diff()
-            self.container.restart_container()
+
+            # Reset the container to ensure a clean state before applying updates
+            self.container.reset_repository()
+
             added_files, modified_file, removed_files = get_updated_files(all_files_patch)
             self.container.update_files(
                 self.git_repo.get_working_directory(), added_files + modified_file, removed_files

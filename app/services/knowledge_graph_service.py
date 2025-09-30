@@ -1,11 +1,13 @@
 """Service for managing and interacting with Knowledge Graphs in Neo4j."""
 
+import asyncio
 from pathlib import Path
 
-from app.graph.knowledge_graph import KnowledgeGraph
-from app.neo4j import knowledge_graph_handler
 from app.services.base_service import BaseService
 from app.services.neo4j_service import Neo4jService
+from app.graph.knowledge_graph import KnowledgeGraph
+from app.neo4j import knowledge_graph_handler
+from app.utils.logger_manager import get_logger
 
 
 class KnowledgeGraphService(BaseService):
@@ -39,8 +41,15 @@ class KnowledgeGraphService(BaseService):
         self.max_ast_depth = max_ast_depth
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
+        self.writing_lock = asyncio.Lock()
+        self._logger = get_logger(__name__)
 
-    def build_and_save_knowledge_graph(self, path: Path) -> int:
+    async def start(self):
+        # Initialize the Neo4j database for Knowledge Graph operations
+        await self.kg_handler.init_database()
+        self._logger.info("Starting Knowledge Graph Service")
+
+    async def build_and_save_knowledge_graph(self, path: Path) -> int:
         """Builds a new Knowledge Graph from source code and saves it to Neo4j.
 
         Creates a new Knowledge Graph representation of the codebase at the specified path,
@@ -52,22 +61,25 @@ class KnowledgeGraphService(BaseService):
         Returns:
             The root node ID of the newly created Knowledge Graph.
         """
-        root_node_id = self.kg_handler.get_new_knowledge_graph_root_node_id()
-        kg = KnowledgeGraph(self.max_ast_depth, self.chunk_size, self.chunk_overlap, root_node_id)
-        kg.build_graph(path)
-        self.kg_handler.write_knowledge_graph(kg)
-        return kg.root_node_id
+        async with self.writing_lock:  # Ensure only one build operation at a time
+            root_node_id = await self.kg_handler.get_new_knowledge_graph_root_node_id()
+            kg = KnowledgeGraph(
+                self.max_ast_depth, self.chunk_size, self.chunk_overlap, root_node_id
+            )
+            await kg.build_graph(path)
+            await self.kg_handler.write_knowledge_graph(kg)
+            return kg.root_node_id
 
-    def clear_kg(self, root_node_id: int):
-        self.kg_handler.clear_knowledge_graph(root_node_id)
+    async def clear_kg(self, root_node_id: int):
+        await self.kg_handler.clear_knowledge_graph(root_node_id)
 
-    def get_knowledge_graph(
+    async def get_knowledge_graph(
         self,
         root_node_id: int,
         max_ast_depth: int,
         chunk_size: int,
         chunk_overlap: int,
     ) -> KnowledgeGraph:
-        return self.kg_handler.read_knowledge_graph(
+        return await self.kg_handler.read_knowledge_graph(
             root_node_id, max_ast_depth, chunk_size, chunk_overlap
         )

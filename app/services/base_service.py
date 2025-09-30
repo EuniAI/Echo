@@ -5,14 +5,14 @@ class BaseService:
 
     def start(self):
         """
-        Start the services.
+        Start the service.
         This method should be overridden by subclasses to implement specific startup logic.
         """
         pass
 
     def close(self):
         """
-        Close the services and release any resources.
+        Close the service and release any resources.
         This method should be overridden by subclasses to implement specific cleanup logic.
         """
         pass

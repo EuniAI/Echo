@@ -10,9 +10,7 @@ class GitResetNode:
         git_repo: GitRepository,
     ):
         self.git_repo = git_repo
-        self._logger = logging.getLogger(
-            f"thread-{threading.get_ident()}.prometheus.lang_graph.nodes.git_reset_node"
-        )
+        self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
 
     def __call__(self, _):
         self._logger.debug("Resetting the git repository")
