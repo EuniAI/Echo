@@ -9,10 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
 from app.entity.repository import Repository
+from app.git.git_repository import GitRepository
 from app.services.base_service import BaseService
 from app.services.database_service import DatabaseService
 from app.services.knowledge_graph_service import KnowledgeGraphService
-from app.git.git_repository import GitRepository
 
 
 class RepositoryService(BaseService):

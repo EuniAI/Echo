@@ -16,8 +16,8 @@ from app.configuration.config import settings
 from app.docker.general_container import GeneralContainer
 from app.docker.user_defined_container import UserDefinedContainer
 from app.lang_graph.subgraphs.bug_reproduction_subgraph import BugReproductionSubgraph
-from app.services.knowledge_graph_service import KnowledgeGraphService
 from app.services.database_service import DatabaseService
+from app.services.knowledge_graph_service import KnowledgeGraphService
 from app.services.llm_service import LLMService
 from app.services.neo4j_service import Neo4jService
 from app.services.repository_service import RepositoryService
@@ -47,7 +47,9 @@ knowledge_graph_service = KnowledgeGraphService(
 database_service = DatabaseService(settings.DATABASE_URL)
 
 repository_service = RepositoryService(
-    kg_service=knowledge_graph_service, database_service=database_service, working_dir=settings.WORKING_DIRECTORY
+    kg_service=knowledge_graph_service,
+    database_service=database_service,
+    working_dir=settings.WORKING_DIRECTORY,
 )
 
 llm_service = LLMService(
@@ -60,7 +62,13 @@ llm_service = LLMService(
     advanced_model_temperature=settings.ADVANCED_MODEL_TEMPERATURE,
     base_model_temperature=settings.BASE_MODEL_TEMPERATURE,
 )
-services = {"neo4j_service": neo4j_service, "knowledge_graph_service": knowledge_graph_service, "database_service": database_service, "repository_service": repository_service, "llm_service": llm_service}
+services = {
+    "neo4j_service": neo4j_service,
+    "knowledge_graph_service": knowledge_graph_service,
+    "database_service": database_service,
+    "repository_service": repository_service,
+    "llm_service": llm_service,
+}
 
 
 async def reproduce_bug(
@@ -184,7 +192,12 @@ async def process_issue(
         issue_body = "\n".join(problem_statement_lines[1:])
 
         # Reproduce the bug
-        (reproduced_bug, reproduced_bug_file, reproduced_bug_commands, reproduced_bug_patch) = await reproduce_bug(
+        (
+            reproduced_bug,
+            reproduced_bug_file,
+            reproduced_bug_commands,
+            reproduced_bug_patch,
+        ) = await reproduce_bug(
             issue_title,
             issue_body,
             [],
@@ -233,8 +246,7 @@ async def async_main(
     # Filter by instance_ids if provided
     if instance_ids:
         filtered_dataset = [
-            issue for issue in filtered_dataset
-            if issue["instance_id"] in instance_ids
+            issue for issue in filtered_dataset if issue["instance_id"] in instance_ids
         ]
         print(f"Dataset loaded: {dataset_name}, filtered to {len(filtered_dataset)} issues")
         print(f"Instance IDs: {instance_ids}")

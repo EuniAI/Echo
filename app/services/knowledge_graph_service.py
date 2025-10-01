@@ -3,10 +3,10 @@
 import asyncio
 from pathlib import Path
 
-from app.services.base_service import BaseService
-from app.services.neo4j_service import Neo4jService
 from app.graph.knowledge_graph import KnowledgeGraph
 from app.neo4j import knowledge_graph_handler
+from app.services.base_service import BaseService
+from app.services.neo4j_service import Neo4jService
 from app.utils.logger_manager import get_logger
 
 

@@ -11,6 +11,7 @@ from app.lang_graph.subgraphs.bug_reproduction_state import BugReproductionState
 from app.tools.file_operation import FileOperationTool
 from app.utils.lang_graph_util import get_last_message_content
 
+
 class BugReproducingFileNode:
     SYS_PROMPT = """\
 You are a test file manager. Your task is to save the provided bug reproducing code in the project. You should:
