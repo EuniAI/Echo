@@ -7,14 +7,6 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", env_prefix="PROMETHEUS_"
     )
-    # General settings
-    version: str = "1.2"
-    BASE_URL: str = f"/v{version}"
-    PROJECT_NAME: str = "Prometheus"
-
-    ENVIRONMENT: Literal["local", "production"]
-    BACKEND_CORS_ORIGINS: List[str]
-    ENABLE_AUTHENTICATION: bool
 
     # Logging
     LOGGING_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -48,22 +40,6 @@ class Settings(BaseSettings):
 
     # Database
     DATABASE_URL: str
-
-    # JWT Configuration
-    JWT_SECRET_KEY: str
-    ACCESS_TOKEN_EXPIRE_TIME: int = 30  # days
-
-    # Invitation Code Expire Time
-    INVITATION_CODE_EXPIRE_TIME: int = 14  # days
-
-    # Default normal user issue credit
-    DEFAULT_USER_ISSUE_CREDIT: int = 20
-
-    # Default normal user repository number
-    DEFAULT_USER_REPOSITORY_LIMIT: int = 5
-
-    # tool for Websearch
-    TAVILY_API_KEY: str
 
 
 settings = Settings()
