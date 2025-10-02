@@ -24,6 +24,7 @@ This agent is used for automatically reproducing software bugs by utilizing larg
    ```bash
    pip install hatchling
    pip install .
+   pip install git+https://github.com/SWE-bench/SWE-bench@v4.1.0
    ```
 2. ### Create the working directory to store logs and cloned repositories:
 
