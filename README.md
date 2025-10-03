@@ -55,7 +55,36 @@ python -m app.main --dataset_name="your_dataset" --github_token="your_token"
 * `--github_token`, `-g`: GitHub access token (optional)
 * `--file`, `-f`: File to save the prediction results (defaults to `predictions_XXX.json` with a timestamp)
 
-## Start neo4j service
+## Start Services
+
+### PostgreSQL Service
+
+Start PostgreSQL using Docker:
+
+```bash
+docker run -d \
+  -p 5432:5432 \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=postgres \
+  postgres
+```
+
+### Neo4j Service
+
+Start Neo4j using Docker:
+
+```bash
+docker run -d \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/password \
+  -e NEO4J_PLUGINS='["apoc"]' \
+  -e NEO4J_dbms_memory_heap_initial__size=4G \
+  -e NEO4J_dbms_memory_heap_max__size=8G \
+  -e NEO4J_dbms_memory_pagecache_size=4G \
+  neo4j
+```
 
 You should first start neo4j service then setting the config of you neo4j
 
