@@ -411,14 +411,29 @@ async def async_main(
 
     print(f"Max workers: {max_workers}")
 
+    # Load existing predictions if file exists
     predictions = {}
+    if Path(file).exists():
+        with open(file, encoding="utf-8") as f:
+            predictions = json.load(f)
+        print(f"Loaded {len(predictions)} existing predictions from {file}")
+
+    # Filter out already processed issues
+    remaining_dataset = [
+        issue for issue in filtered_dataset if issue["instance_id"] not in predictions
+    ]
+
+    if len(remaining_dataset) < len(filtered_dataset):
+        print(f"Skipping {len(filtered_dataset) - len(remaining_dataset)} already processed issues")
+        print(f"Remaining issues to process: {len(remaining_dataset)}")
+
     semaphore = asyncio.Semaphore(max_workers)
     lock = asyncio.Lock()
 
-    # Create tasks for all issues
+    # Create tasks for remaining issues only
     tasks = [
         process_issue(github_issue, github_token, predictions, file, run_build, semaphore, lock)
-        for github_issue in filtered_dataset
+        for github_issue in remaining_dataset
     ]
 
     # Process tasks with progress bar
