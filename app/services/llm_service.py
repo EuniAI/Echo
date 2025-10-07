@@ -3,6 +3,7 @@ from typing import Optional
 from langchain_anthropic import ChatAnthropic
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_google_vertexai import ChatVertexAI
 
 from app.chat_models.custom_chat_openai import CustomChatOpenAI
 from app.services.base_service import BaseService
@@ -54,12 +55,19 @@ def get_model(
             max_retries=3,
         )
     elif "gemini" in model_name:
-        return ChatGoogleGenerativeAI(
+        if model_name == "gemini-2.5-pro":
+            return ChatVertexAI(
             model=model_name,
-            api_key=gemini_api_key,
             temperature=temperature,
             max_retries=3,
         )
+        else:
+            return ChatGoogleGenerativeAI(
+                model=model_name,
+                api_key=gemini_api_key,
+                temperature=temperature,
+                max_retries=3,
+            )
     else:
         """
         Custom OpenAI chat model with specific configuration.
