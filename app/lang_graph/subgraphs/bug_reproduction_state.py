@@ -7,6 +7,7 @@ from app.models.context import Context
 
 
 class BugReproductionState(TypedDict):
+    issue_patch: str
     issue_title: str
     issue_body: str
     issue_comments: Sequence[Mapping[str, str]]

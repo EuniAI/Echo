@@ -58,14 +58,34 @@ class BugReproductionSubgraph:
         # Step 1: Generate initial system messages based on issue data
         issue_bug_reproduction_context_message_node = IssueBugReproductionContextMessageNode()
 
+
+        #Old version only retrieve existing test
         # Step 2: Retrieve relevant code/documentation context from the knowledge graph
-        context_retrieval_subgraph_node = ContextRetrievalSubgraphNode(
-            base_model,
-            kg,
-            git_repo.playground_path,
-            "bug_reproducing_query",
-            "bug_reproducing_context",
-        )
+        # context_retrieval_subgraph_node = ContextRetrievalSubgraphNode(
+        #     base_model,
+        #     kg,
+        #     git_repo.playground_path,
+        #     "bug_reproducing_query",
+        #     "bug_reproducing_context",
+        # )
+
+        # New version: use the issue and patch to retrieve existing test cases and focal code.
+
+        # Step 2: Retrieve focal code based on the issue and patch information.
+
+        # Step 3: Retrieve existing test cases based on the issue and patch information.
+
+        # Step 4: Use the issue, patch, focal code, and existing test cases to generate reproduction test cases.
+
+        # Step 5: Generate and refine the reproduction test cases; the process is similar to the previous version.
+
+        # Step X: Analyze the generated test case on the old codebase and the patched codebase.
+        # The expected behavior is that the test case fails on the old codebase and passes on the patched codebase.
+        # Otherwise, regenerate a new test case.
+
+
+        
+        
 
         # Step 3: Write a patch to reproduce the bug
         bug_reproducing_write_message_node = BugReproducingWriteMessageNode()
@@ -215,6 +235,7 @@ class BugReproductionSubgraph:
         self,
         issue_title: str,
         issue_body: str,
+        issue_patch: str,
         issue_comments: Sequence[Mapping[str, str]],
         recursion_limit: int = 150,
     ):
@@ -234,6 +255,7 @@ class BugReproductionSubgraph:
 
         input_state = {
             "issue_title": issue_title,
+            "issue_patch": issue_patch,
             "issue_body": issue_body,
             "issue_comments": issue_comments,
             "max_refined_query_loop": 2,
