@@ -6,7 +6,6 @@ from langchain.tools import StructuredTool
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import SystemMessage
 
-from app.graph.knowledge_graph import KnowledgeGraph
 from app.lang_graph.subgraphs.bug_reproduction_state import BugReproductionState
 from app.tools.file_operation import FileOperationTool
 
@@ -112,8 +111,8 @@ def test_empty_array_parsing(parser):
 </example>
 '''
 
-    def __init__(self, model: BaseChatModel, local_path: str, kg: KnowledgeGraph):
-        self.file_operation_tool = FileOperationTool(local_path, kg)
+    def __init__(self, model: BaseChatModel, local_path: str):
+        self.file_operation_tool = FileOperationTool(local_path)
         self.tools = self._init_tools()
         self.system_prompt = SystemMessage(self.SYS_PROMPT)
         self.model_with_tools = model.bind_tools(self.tools)

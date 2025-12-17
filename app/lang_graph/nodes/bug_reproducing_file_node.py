@@ -6,7 +6,6 @@ from langchain.tools import StructuredTool
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from app.graph.knowledge_graph import KnowledgeGraph
 from app.lang_graph.subgraphs.bug_reproduction_state import BugReproductionState
 from app.tools.file_operation import FileOperationTool
 from app.utils.lang_graph_util import get_last_message_content
@@ -31,14 +30,10 @@ Respond with the created file's relative path.
     HUMAN_PROMPT = """\
 Save this bug reproducing code in the project:
 {bug_reproducing_code}
-
-Current project structure:
-{project_structure}
 """
 
-    def __init__(self, model: BaseChatModel, kg: KnowledgeGraph, local_path: str):
-        self.kg = kg
-        self.file_operation_tool = FileOperationTool(local_path, kg)
+    def __init__(self, model: BaseChatModel, local_path: str):
+        self.file_operation_tool = FileOperationTool(local_path)
         self.tools = self._init_tools()
         self.model_with_tools = model.bind_tools(self.tools)
         self.system_prompt = SystemMessage(self.SYS_PROMPT)
@@ -74,7 +69,6 @@ Current project structure:
                 bug_reproducing_code=get_last_message_content(
                     state["bug_reproducing_write_messages"]
                 ),
-                project_structure=self.kg.get_file_tree(),
             )
         )
 

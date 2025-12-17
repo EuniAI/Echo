@@ -29,13 +29,10 @@ from app.configuration.config import settings
 from app.docker.general_container import GeneralContainer
 from app.docker.user_defined_container import UserDefinedContainer
 from app.git.git_repository import GitRepository
-from app.graph.knowledge_graph import KnowledgeGraph
 from app.lang_graph.subgraphs.bug_reproduction_subgraph import BugReproductionSubgraph
-from app.services.database_service import DatabaseService
-from app.services.knowledge_graph_service import KnowledgeGraphService
 from app.services.llm_service import LLMService
-from app.services.neo4j_service import Neo4jService
 from app.services.repository_service import RepositoryService
+from app.utils.context_retrieval import upload_repository
 from app.utils.swebench_utils import get_build_commands
 
 # Docker image naming format for SWE-bench evaluation containers
@@ -49,25 +46,8 @@ LOG_DIR = Path(settings.WORKING_DIRECTORY) / "logs"
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
 # Initialize services with configuration settings
-neo4j_service = Neo4jService(
-    settings.NEO4J_URI,
-    settings.NEO4J_USERNAME,
-    settings.NEO4J_PASSWORD,
-)
-
-knowledge_graph_service = KnowledgeGraphService(
-    neo4j_service,
-    settings.NEO4J_BATCH_SIZE,
-    settings.KNOWLEDGE_GRAPH_MAX_AST_DEPTH,
-    settings.KNOWLEDGE_GRAPH_CHUNK_SIZE,
-    settings.KNOWLEDGE_GRAPH_CHUNK_OVERLAP,
-)
-
-database_service = DatabaseService(settings.DATABASE_URL)
 
 repository_service = RepositoryService(
-    kg_service=knowledge_graph_service,
-    database_service=database_service,
     working_dir=settings.WORKING_DIRECTORY,
 )
 
@@ -82,9 +62,6 @@ llm_service = LLMService(
     base_model_temperature=settings.BASE_MODEL_TEMPERATURE,
 )
 services = {
-    "neo4j_service": neo4j_service,
-    "knowledge_graph_service": knowledge_graph_service,
-    "database_service": database_service,
     "repository_service": repository_service,
     "llm_service": llm_service,
 }
@@ -93,8 +70,9 @@ services = {
 def _reproduce_bug(
     issue_title: str,
     issue_body: str,
+    issue_patch: str,
     issue_comments: Sequence[Mapping[str, str]],
-    knowledge_graph: KnowledgeGraph,
+    repository_id: int,
     repo_path: Path,
     git_repo: GitRepository,
     dockerfile_content: str = None,
@@ -140,7 +118,6 @@ def _reproduce_bug(
         advanced_model=llm_service.advanced_model,
         base_model=llm_service.base_model,
         container=container,
-        kg=knowledge_graph,
         git_repo=git_repo,
     )
 
@@ -148,7 +125,11 @@ def _reproduce_bug(
     print("Starting bug reproduction...")
     try:
         output_states = bug_reproduction_subgraph.invoke(
-            issue_title=issue_title, issue_body=issue_body, issue_comments=issue_comments
+            issue_title=issue_title,
+            issue_body=issue_body,
+            issue_patch=issue_patch,
+            issue_comments=issue_comments,
+            repository_id=repository_id,
         )
     except Exception as e:
         logger.error(f"Error in answer_issue: {str(e)}\n{traceback.format_exc()}")
@@ -176,6 +157,7 @@ def _reproduce_bug(
 async def reproduce_bug(
     issue_title: str,
     issue_body: str,
+    issue_patch: str,
     issue_comments: Sequence[Mapping[str, str]],
     github_url: str,
     github_token: str,
@@ -232,16 +214,12 @@ async def reproduce_bug(
     repo_path = await repository_service.clone_github_repo(github_token, github_url, commit_id)
     print(f"Repository cloned to: {repo_path}")
 
-    # Build and save the knowledge graph
-    root_node_id = await knowledge_graph_service.build_and_save_knowledge_graph(repo_path)
-
-    knowledge_graph = await knowledge_graph_service.get_knowledge_graph(
-        root_node_id,
-        settings.KNOWLEDGE_GRAPH_MAX_AST_DEPTH,
-        settings.KNOWLEDGE_GRAPH_CHUNK_SIZE,
-        settings.KNOWLEDGE_GRAPH_CHUNK_OVERLAP,
-    )
     git_repo = repository_service.get_repository(repo_path)
+
+    repository_id = upload_repository(
+        github_url,
+        commit_id,
+    )["repository_id"]
 
     # Run the bug reproduction in a separate thread
     (
@@ -253,8 +231,9 @@ async def reproduce_bug(
         _reproduce_bug,
         issue_title,
         issue_body,
+        issue_patch,
         issue_comments,
-        knowledge_graph,
+        repository_id,
         repo_path,
         git_repo,
         dockerfile_content,
@@ -265,8 +244,6 @@ async def reproduce_bug(
         workdir,
     )
 
-    # Clear the knowledge graph from Neo4j after use
-    await knowledge_graph_service.clear_kg(knowledge_graph.root_node_id)
     # Clear the repository from the repository service
     shutil.rmtree(repo_path)
 
@@ -276,6 +253,7 @@ async def reproduce_bug(
 
 async def process_issue(
     github_issue: dict,
+    issue_patch: str,
     github_token: str,
     predictions: dict,
     file: str,
@@ -328,6 +306,7 @@ async def process_issue(
         ) = await reproduce_bug(
             issue_title,
             issue_body,
+            issue_patch,
             [],
             github_url,
             github_token,
@@ -359,6 +338,7 @@ async def async_main(
     file: str,
     run_build: bool,
     max_workers: int,
+    patch_file: str,
     instance_ids: list[str] | None = None,
 ):
     """Main asynchronous entry point for processing SWE-bench issues concurrently.
@@ -427,12 +407,16 @@ async def async_main(
         print(f"Skipping {len(filtered_dataset) - len(remaining_dataset)} already processed issues")
         print(f"Remaining issues to process: {len(remaining_dataset)}")
 
+    with open(patch_file, "r", encoding="utf-8") as f:
+        patches = json.load(f)
+
     semaphore = asyncio.Semaphore(max_workers)
     lock = asyncio.Lock()
 
     # Create tasks for remaining issues only
     tasks = [
-        process_issue(github_issue, github_token, predictions, file, run_build, semaphore, lock)
+        process_issue(github_issue, patches.get(github_issue["instance_id"], ""), github_token,
+                      predictions, file, run_build, semaphore, lock)
         for github_issue in remaining_dataset
     ]
 
@@ -487,6 +471,12 @@ async def async_main(
     multiple=True,
     help="Filter dataset by specific instance_id(s). Can be specified multiple times.",
 )
+@click.option(
+    "--patch_file",
+    "-p",
+    required=True,
+    help="Path to patches.json file containing model patches",
+)
 def main(
     dataset_name: str,
     github_token: str,
@@ -494,6 +484,7 @@ def main(
     run_build: bool,
     max_workers: int,
     instance_id: tuple[str, ...],
+    patch_file: str,
 ):
     """CLI entry point for the Prometheus Bug Reproduction Agent.
 
@@ -510,7 +501,7 @@ def main(
     # Convert tuple of instance IDs to list (None if empty)
     instance_ids = list(instance_id) if instance_id else None
     # Run the async main function
-    asyncio.run(async_main(dataset_name, github_token, file, run_build, max_workers, instance_ids))
+    asyncio.run(async_main(dataset_name, github_token, file, run_build, max_workers, patch_file, instance_ids))
 
 
 if __name__ == "__main__":

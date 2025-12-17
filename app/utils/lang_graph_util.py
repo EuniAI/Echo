@@ -1,85 +1,11 @@
-from typing import Callable, Dict, Sequence
+from typing import Sequence
 
 from langchain_core.messages import (
     AIMessage,
     BaseMessage,
-    HumanMessage,
     ToolMessage,
 )
 from langchain_core.output_parsers import StrOutputParser
-
-from app.utils.knowledge_graph_utils import knowledge_graph_data_for_context_generator
-
-
-def check_remaining_steps(
-    state: Dict,
-    router: Callable[..., str],
-    min_remaining_steps: int,
-    remaining_steps_key: str = "remaining_steps",
-) -> str:
-    original_route = router(state)
-    if state[remaining_steps_key] > min_remaining_steps:
-        return original_route
-    else:
-        return "low_remaining_steps"
-
-
-def extract_ai_responses(messages: Sequence[BaseMessage]) -> Sequence[str]:
-    ai_responses = []
-    output_parser = StrOutputParser()
-    for index, message in enumerate(messages):
-        if isinstance(message, AIMessage) and (
-            index == len(messages) - 1 or isinstance(messages[index + 1], HumanMessage)
-        ):
-            ai_responses.append(output_parser.invoke(message))
-    return ai_responses
-
-
-def extract_human_queries(messages: Sequence[BaseMessage]) -> Sequence[str]:
-    human_queries = []
-    output_parser = StrOutputParser()
-    for message in messages:
-        if isinstance(message, HumanMessage):
-            human_queries.append(output_parser.invoke(message))
-    return human_queries
-
-
-def extract_last_tool_messages(messages: Sequence[BaseMessage]) -> Sequence[ToolMessage]:
-    """
-    Extracts all tool messages that come after the last human message in the sequence.
-    :param messages:
-    :return: messages: A list of ToolMessage objects that come after the last HumanMessage.
-    """
-    tool_messages = []
-    last_human_index = -1
-    for i in range(len(messages) - 1, -1, -1):
-        if isinstance(messages[i], HumanMessage):
-            last_human_index = i
-            break
-
-    if last_human_index == -1:
-        return []
-
-    for message in messages[last_human_index + 1 :]:
-        if isinstance(message, ToolMessage):
-            tool_messages.append(message)
-    return tool_messages
-
-
-def transform_tool_messages_to_str(messages: Sequence[ToolMessage]) -> str:
-    # Aggregate all artifacts from the tool messages
-    total_artifacts = []
-    for message in messages:
-        # only process messages that have artifacts
-        if message.artifact:
-            total_artifacts.extend(message.artifact)
-
-    # Convert the aggregated artifacts to a string representation
-    result = ""
-    for context in knowledge_graph_data_for_context_generator(total_artifacts):
-        result += str(context)
-        result += "\n"
-    return result
 
 
 def get_last_message_content(messages: Sequence[BaseMessage]) -> str:

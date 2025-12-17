@@ -1,18 +1,11 @@
 """Service for managing repository (GitHub or local) operations."""
 
-import shutil
 import uuid
 from pathlib import Path
 from typing import Optional
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
-
-from app.entity.repository import Repository
 from app.git.git_repository import GitRepository
 from app.services.base_service import BaseService
-from app.services.database_service import DatabaseService
-from app.services.knowledge_graph_service import KnowledgeGraphService
 
 
 class RepositoryService(BaseService):
@@ -26,20 +19,14 @@ class RepositoryService(BaseService):
 
     def __init__(
         self,
-        kg_service: KnowledgeGraphService,
-        database_service: DatabaseService,
         working_dir: str,
     ):
         """Initializes the repository service.
 
         Args:
-          kg_service: Knowledge graph service instance for codebase tracking.
           working_dir: Base directory for repository operations. A 'repositories'
               subdirectory will be created under this path.
         """
-        self.kg_service = kg_service
-        self.database_service = database_service
-        self.engine = database_service.engine
         self.target_directory = Path(working_dir) / "repositories"
         self.target_directory.mkdir(parents=True, exist_ok=True)
 
@@ -83,152 +70,7 @@ class RepositoryService(BaseService):
             git_repo.checkout_commit(commit_id)
         return git_repo.get_working_directory()
 
-    async def create_new_repository(
-        self,
-        url: str,
-        commit_id: Optional[str],
-        playground_path: str,
-        user_id: Optional[int],
-        kg_root_node_id: int,
-    ) -> int:
-        """
-        Creates a new empty repository in the working directory.
-
-        Args:
-            url: The url of the repository to be created.
-            commit_id: Optional commit ID to associate with the repository.
-            playground_path: Path where the repository will be cloned.
-            user_id: Optional user ID associated with the repository.
-            kg_root_node_id: ID of the root node in the knowledge graph for this repository.
-
-        Returns:
-            The ID of the newly created repository in the database.
-        """
-        async with AsyncSession(self.engine) as session:
-            repository = Repository(
-                url=url,
-                commit_id=commit_id,
-                playground_path=playground_path,
-                user_id=user_id,
-                kg_root_node_id=kg_root_node_id,
-                kg_max_ast_depth=self.kg_service.max_ast_depth,
-                kg_chunk_size=self.kg_service.chunk_size,
-                kg_chunk_overlap=self.kg_service.chunk_overlap,
-            )
-            session.add(repository)
-            await session.commit()
-            await session.refresh(repository)
-        return repository.id
-
-    async def get_repository_by_id(self, repository_id: int) -> Optional[Repository]:
-        """
-        Retrieves a repository by its ID.
-
-        Args:
-            repository_id: The ID of the repository to retrieve.
-
-        Returns:
-            The Repository instance if found, otherwise None.
-        """
-        async with AsyncSession(self.engine) as session:
-            return await session.get(Repository, repository_id)
-
-    async def get_repository_by_url_and_commit_id(
-        self, url: str, commit_id: str
-    ) -> Optional[Repository]:
-        """
-        Retrieves a repository by its URL and commit ID.
-
-        Args:
-            url: The URL of the repository.
-            commit_id: The commit ID of the repository.
-
-        Returns:
-            The Repository instance if found, otherwise None.
-        """
-        async with AsyncSession(self.engine) as session:
-            statement = select(Repository).where(
-                Repository.url == url, Repository.commit_id == commit_id
-            )
-            result = await session.execute(statement)
-            return result.scalars().first()
-
-    async def get_repository_by_url_commit_id_and_user_id(
-        self, url: str, commit_id: str, user_id: int
-    ) -> Optional[Repository]:
-        """
-        Retrieves a repository by its URL commit ID and User ID.
-
-        Args:
-            url: The URL of the repository.
-            commit_id: The commit ID of the repository.
-            user_id: The user ID of the repository.
-
-        Returns:
-            The Repository instance if found, otherwise None.
-        """
-        async with AsyncSession(self.engine) as session:
-            statement = select(Repository).where(
-                Repository.url == url,
-                Repository.commit_id == commit_id,
-                Repository.user_id == user_id,
-            )
-            result = await session.execute(statement)
-            return result.scalars().first()
-
-    async def update_repository_status(self, repository_id: int, is_working: bool):
-        """
-        Updates the working status of a repository.
-
-        Args:
-            repository_id: The ID of the repository to update.
-            is_working: The new working status to set for the repository.
-        """
-        async with AsyncSession(self.engine) as session:
-            repository = await session.get(Repository, repository_id)
-            if repository:
-                repository.is_working = is_working
-                session.add(repository)
-                await session.commit()
-
-    def clean_repository(self, repository: Repository):
-        path = Path(repository.playground_path)
-        if path.exists():
-            shutil.rmtree(repository.playground_path)
-            path.parent.rmdir()
-
-    async def delete_repository(self, repository: Repository):
-        """
-        deletes a repository from the database.
-
-        Args:
-            repository: The repository instance to mark as cleaned.
-        """
-        async with AsyncSession(self.engine) as session:
-            obj = await session.get(Repository, repository.id)
-            if obj:
-                await session.delete(obj)
-                await session.commit()
-
     def get_repository(self, local_path) -> GitRepository:
         git_repo = GitRepository()
         git_repo.from_local_repository(Path(local_path))
         return git_repo
-
-    async def get_repositories_by_user_id(self, user_id):
-        """
-        Retrieves all repositories associated with a specific user ID.
-        """
-        async with AsyncSession(self.engine) as session:
-            statement = select(Repository).where(Repository.user_id == user_id)
-            result = await session.execute(statement)
-            return result.scalars().all()
-
-    async def get_all_repositories(self):
-        """
-        Retrieves all repositories in the database.
-        """
-        async with AsyncSession(self.engine) as session:
-            statement = select(Repository)
-            result = await session.execute(statement)
-            return result.scalars().all()
