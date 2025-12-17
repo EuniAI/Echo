@@ -96,14 +96,24 @@ Search priority:
 
 Find the most relevant code function with complete context, ensuring ALL necessary class and function definitions are included.
 """
+
     def __init__(self):
         self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
 
     def __call__(self, state: BugReproductionState):
-        bug_reproducing_retrival_code_with_patch_query = self.BUG_REPRODUCING_RETRIVAL_CODE_WITH_PATCH_QUERY.format(
-            issue_info=format_issue_info(
-                state["issue_title"], state["issue_body"], state["issue_comments"], state["issue_patch"]
-            ),
+        bug_reproducing_retrival_code_with_patch_query = (
+            self.BUG_REPRODUCING_RETRIVAL_CODE_WITH_PATCH_QUERY.format(
+                issue_info=format_issue_info(
+                    state["issue_title"],
+                    state["issue_body"],
+                    state["issue_comments"],
+                    state["issue_patch"],
+                ),
+            )
         )
-        self._logger.debug(f"Sending query to context provider subgraph:\n{bug_reproducing_retrival_code_with_patch_query}")
-        return {"bug_reproducing_retrival_code_with_patch_query": bug_reproducing_retrival_code_with_patch_query}
+        self._logger.debug(
+            f"Sending query to context provider subgraph:\n{bug_reproducing_retrival_code_with_patch_query}"
+        )
+        return {
+            "bug_reproducing_retrival_code_with_patch_query": bug_reproducing_retrival_code_with_patch_query
+        }

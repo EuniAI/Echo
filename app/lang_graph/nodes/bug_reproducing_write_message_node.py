@@ -43,11 +43,19 @@ Now think about what went wrong and generate the complete self-contained test ca
 
         # Format focal code context
         focal_code_context = state.get("bug_reproducing_focal_code_context", [])
-        focal_code_str = "\n\n".join([str(context) for context in focal_code_context]) if focal_code_context else "No focal code context retrieved"
+        focal_code_str = (
+            "\n\n".join([str(context) for context in focal_code_context])
+            if focal_code_context
+            else "No focal code context retrieved"
+        )
 
         # Format test case context
         test_context = state.get("bug_reproducing_test_context", [])
-        test_context_str = "\n\n".join([str(context) for context in test_context]) if test_context else "No test case context retrieved"
+        test_context_str = (
+            "\n\n".join([str(context) for context in test_context])
+            if test_context
+            else "No test case context retrieved"
+        )
 
         # Format patch info
         patch_info = state.get("issue_patch", "")

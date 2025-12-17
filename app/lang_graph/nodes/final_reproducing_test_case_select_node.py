@@ -6,7 +6,7 @@ from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
-from prometheus.utils.issue_util import format_issue_info
+from app.utils.issue_util import format_issue_info
 
 
 class FinalReproducingTestCaseSelectionStructuredOutput(BaseModel):
@@ -133,7 +133,9 @@ Remember to provide structured output with two fields:
         prompt = ChatPromptTemplate.from_messages(
             [("system", self.SYS_PROMPT), ("human", "{human_prompt}")]
         )
-        structured_llm = model.with_structured_output(FinalPatchSelectionStructuredOutput)
+        structured_llm = model.with_structured_output(
+            FinalReproducingTestCaseSelectionStructuredOutput
+        )
         self.model = prompt | structured_llm
         self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
         self.majority_voting_times = 10

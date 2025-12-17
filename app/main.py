@@ -415,8 +415,16 @@ async def async_main(
 
     # Create tasks for remaining issues only
     tasks = [
-        process_issue(github_issue, patches.get(github_issue["instance_id"], ""), github_token,
-                      predictions, file, run_build, semaphore, lock)
+        process_issue(
+            github_issue,
+            patches.get(github_issue["instance_id"], ""),
+            github_token,
+            predictions,
+            file,
+            run_build,
+            semaphore,
+            lock,
+        )
         for github_issue in remaining_dataset
     ]
 
@@ -501,7 +509,11 @@ def main(
     # Convert tuple of instance IDs to list (None if empty)
     instance_ids = list(instance_id) if instance_id else None
     # Run the async main function
-    asyncio.run(async_main(dataset_name, github_token, file, run_build, max_workers, patch_file, instance_ids))
+    asyncio.run(
+        async_main(
+            dataset_name, github_token, file, run_build, max_workers, patch_file, instance_ids
+        )
+    )
 
 
 if __name__ == "__main__":

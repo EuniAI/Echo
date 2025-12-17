@@ -93,6 +93,7 @@ Search priority:
 
 Find the most relevant code function with complete context, ensuring ALL necessary class and function definitions are included.
 """
+
     def __init__(self):
         self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
 
@@ -102,5 +103,7 @@ Find the most relevant code function with complete context, ensuring ALL necessa
                 state["issue_title"], state["issue_body"], state["issue_comments"]
             ),
         )
-        self._logger.debug(f"Sending query to context provider subgraph:\n{bug_reproducing_retrival_code_query}")
+        self._logger.debug(
+            f"Sending query to context provider subgraph:\n{bug_reproducing_retrival_code_query}"
+        )
         return {"bug_reproducing_retrival_code_query": bug_reproducing_retrival_code_query}

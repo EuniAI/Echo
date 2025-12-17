@@ -57,7 +57,11 @@ class DualVersionValidationNode:
 
         # Check if test passed
         # Look for pytest success indicators and absence of failure indicators
-        passed = ("passed" in output.lower() or "ok" in output.lower()) and "failed" not in output.lower() and "error" not in output.lower()
+        passed = (
+            ("passed" in output.lower() or "ok" in output.lower())
+            and "failed" not in output.lower()
+            and "error" not in output.lower()
+        )
 
         return output, passed
 
@@ -112,9 +116,7 @@ class DualVersionValidationNode:
             all_updated_files = list(set(added_files + modified_files))
 
             self.container.update_files(
-                self.git_repo.playground_path,
-                all_updated_files,
-                removed_files
+                self.git_repo.playground_path, all_updated_files, removed_files
             )
         except Exception as e:
             self._logger.error(f"Failed to update container: {e}")
@@ -140,7 +142,9 @@ class DualVersionValidationNode:
         if validation_passed:
             self._logger.info("Validation PASSED: Test fails on old, passes on new")
         else:
-            self._logger.warning(f"Validation FAILED: old_passed={old_passed}, new_passed={new_passed}")
+            self._logger.warning(
+                f"Validation FAILED: old_passed={old_passed}, new_passed={new_passed}"
+            )
 
         return {
             "validation_passed": validation_passed,

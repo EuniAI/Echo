@@ -39,7 +39,4 @@ class LoadPatchNode:
             return {"patch_load_error": patch_content, "issue_patch": ""}
 
         self._logger.info(f"Successfully loaded patch for {instance_id}")
-        return {
-            "issue_patch": patch_content,
-            "patch_load_error": ""
-        }
+        return {"issue_patch": patch_content, "patch_load_error": ""}

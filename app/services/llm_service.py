@@ -57,10 +57,10 @@ def get_model(
     elif "gemini" in model_name:
         if model_name == "gemini-2.5-pro":
             return ChatVertexAI(
-            model=model_name,
-            temperature=temperature,
-            max_retries=3,
-        )
+                model=model_name,
+                temperature=temperature,
+                max_retries=3,
+            )
         else:
             return ChatGoogleGenerativeAI(
                 model=model_name,

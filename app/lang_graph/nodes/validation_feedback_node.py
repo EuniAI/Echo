@@ -45,8 +45,12 @@ Please generate a new test case that:
             tuple: (old_passed, new_passed, analysis_message)
         """
         # Check if test passed based on output
-        old_passed = ("passed" in old_result.lower() or "ok" in old_result.lower()) and "failed" not in old_result.lower()
-        new_passed = ("passed" in new_result.lower() or "ok" in new_result.lower()) and "failed" not in new_result.lower()
+        old_passed = (
+            "passed" in old_result.lower() or "ok" in old_result.lower()
+        ) and "failed" not in old_result.lower()
+        new_passed = (
+            "passed" in new_result.lower() or "ok" in new_result.lower()
+        ) and "failed" not in new_result.lower()
 
         if old_passed and new_passed:
             analysis = "The test passes on both old and new versions. This means the test is not demonstrating the bug. The test needs to fail on the old version to show the bug exists."
@@ -74,12 +78,12 @@ Please generate a new test case that:
             new_result=new_result,
             old_status=old_status,
             new_status=new_status,
-            analysis=analysis
+            analysis=analysis,
         )
 
-        self._logger.info(f"Validation failed - providing feedback for retry (attempt {state.get('validation_attempt_count', 0)})")
+        self._logger.info(
+            f"Validation failed - providing feedback for retry (attempt {state.get('validation_attempt_count', 0)})"
+        )
 
         # Add feedback to write messages to guide next iteration
-        return {
-            "bug_reproducing_write_messages": [HumanMessage(feedback_message)]
-        }
+        return {"bug_reproducing_write_messages": [HumanMessage(feedback_message)]}

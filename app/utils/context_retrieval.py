@@ -20,10 +20,7 @@ class RepositoryError(Exception):
 # ============================================================================
 
 
-def upload_repository(
-    https_url: str,
-    commit_id: str | None = None
-) -> dict[str, Any]:
+def upload_repository(https_url: str, commit_id: str | None = None) -> dict[str, Any]:
     """
     Upload a repository to Prometheus CRA system.
 
@@ -230,9 +227,7 @@ def context_retrieval_tool(
         return data
 
     except requests.exceptions.ConnectionError as e:
-        raise ContextRetrievalError(
-            f"Failed to connect to CRA at {cra_url}: {e}"
-        ) from e
+        raise ContextRetrievalError(f"Failed to connect to CRA at {cra_url}: {e}") from e
 
     except requests.exceptions.HTTPError as e:
         error_msg = f"CRA returned error status {response.status_code if response else 'unknown'}"

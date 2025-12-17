@@ -201,7 +201,7 @@ class BugReproductionSubgraph:
             lambda state: state["reproduced_bug"],
             {
                 True: "dual_version_validation_node",  # Test claims to reproduce - validate it
-                False: "reset_bug_reproducing_file_messages_node"  # Test doesn't claim to reproduce - retry
+                False: "reset_bug_reproducing_file_messages_node",  # Test doesn't claim to reproduce - retry
             },
         )
 
@@ -220,8 +220,8 @@ class BugReproductionSubgraph:
             {
                 "success": END,  # Validation passed - we're done!
                 "retry": "validation_feedback_node",  # Retry with feedback
-                "max_retries": END  # Max retries reached, give up
-            }
+                "max_retries": END,  # Max retries reached, give up
+            },
         )
 
         # After providing feedback, reset and retry
