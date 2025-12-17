@@ -1,9 +1,6 @@
 import logging
 import threading
 
-from app.lang_graph.nodes.issue_bug_reproduction_retrival_code_with_patch_node import (
-    IssueBugReproductionRetrivalCodeWithPatchNode,
-)
 from app.lang_graph.subgraphs.bug_reproduction_state import BugReproductionState
 from app.utils.context_retrieval import ContextRetrievalError, context_retrieval_tool
 
@@ -31,7 +28,6 @@ including all necessary class and function definitions.
 
     def __init__(self):
         self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
-        self.query_node = IssueBugReproductionRetrivalCodeWithPatchNode()
 
     def __call__(self, state: BugReproductionState):
         self._logger.info("Retrieving focal code context via external CRA")
