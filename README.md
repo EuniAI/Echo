@@ -1,65 +1,50 @@
-# Prometheus Bug Reproduction Agent
+<div align="center">
 
-This agent is used for automatically reproducing software bugs by utilizing large language models (LLMs) and knowledge graphs to analyze issues in GitHub repositories and attempt to reproduce them.
+# Echo
 
-## Features
+**Automated Bug Reproduction Agent powered by LLMs & Knowledge Graphs**
 
-* Automatically clones GitHub code repositories
-* Builds and stores code knowledge graphs
-* Uses LLMs to analyze issue descriptions
-* Reproduces bugs in a containerized environment
-* Generates bug reproduction files, commands, and patches
-* Supports batch testing with the SWE-bench dataset
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
+[![Docker](https://img.shields.io/badge/docker-required-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com)
+[![Neo4j](https://img.shields.io/badge/neo4j-knowledge_graph-4581C3?style=for-the-badge&logo=neo4j&logoColor=white)](https://neo4j.com)
 
-## Requirements
+---
 
-* Python 3.11+
-* Neo4j database
-* Docker
-* Git
+Echo analyzes GitHub issues, builds code knowledge graphs, and reproduces bugs in isolated Docker environments — all automatically.
 
-## 📦 Setup
-1. ### Install dependencies:
+</div>
 
-   ```bash
-   pip install hatchling
-   pip install .
-   pip install git+https://github.com/SWE-bench/SWE-bench@v4.1.0
-   ```
-2. ### Create the working directory to store logs and cloned repositories:
+## Highlights
 
-   ```bash
-   mkdir working_dir
-   ```
+- **Knowledge Graph Analysis** — Builds AST-based code knowledge graphs for deep codebase understanding
+- **LLM-Powered Reasoning** — Leverages large language models to interpret issues and generate reproductions
+- **Containerized Execution** — Runs all reproductions in isolated Docker environments
+- **Batch Processing** — Supports SWE-bench datasets with parallel workers
+- **Automatic Patch Generation** — Produces reproduction files, test commands, and diff patches
 
-## Configuration
+## Prerequisites
 
-Before use, you need to set the following environment variables or configuration files:
+| Dependency | Version |
+|------------|---------|
+| Python | 3.11+ |
+| Docker | Latest |
+| Neo4j | Latest |
+| Git | Latest |
 
-* NEO4J related configurations (URI, username, password)
-* LLM related API keys (OpenAI, Anthropic, Gemini, etc.)
-* Working directory path
-* GitHub access token (for private repositories)
+## Quick Start
 
-## Usage
-
-### Command-line execution
+### 1. Install
 
 ```bash
-python -m app.main --dataset_name="your_dataset" --github_token="your_token"
+pip install hatchling
+pip install .
+pip install git+https://github.com/SWE-bench/SWE-bench@v4.1.0
 ```
 
-### Parameter Description
+### 2. Start Services
 
-* `--dataset_name`, `-d`: SWE-bench dataset name (required)
-* `--github_token`, `-g`: GitHub access token (optional)
-* `--file`, `-f`: File to save the prediction results (defaults to `predictions_XXX.json` with a timestamp)
-
-## Start Services
-
-### PostgreSQL Service
-
-Start PostgreSQL using Docker:
+<details>
+<summary><b>PostgreSQL</b></summary>
 
 ```bash
 docker run -d \
@@ -70,9 +55,10 @@ docker run -d \
   postgres
 ```
 
-### Neo4j Service
+</details>
 
-Start Neo4j using Docker:
+<details>
+<summary><b>Neo4j</b> (start before configuring)</summary>
 
 ```bash
 docker run -d \
@@ -86,27 +72,78 @@ docker run -d \
   neo4j
 ```
 
-You should first start neo4j service then setting the config of you neo4j
+</details>
 
-## Workflow
+### 3. Configure
 
-1. Load test cases from the SWE-bench dataset
-2. Clone the GitHub repository locally
-3. Build the code knowledge graph
-4. Initialize the container environment (user-defined or generic container)
-5. Call the bug reproduction subgraph for analysis and reproduction
-6. Save the reproduction results (success/failure, related files, commands, and patches)
+Copy `example.env` to `.env` and fill in:
+
+- **Neo4j** — URI, username, password
+- **Database** — PostgreSQL connection string
+- **LLM API Keys** — Anthropic / Gemini / OpenAI-compatible
+- **Working Directory** — Path for logs and cloned repos
+
+### 4. Create Working Directory
+
+```bash
+mkdir working_dir
+```
+
+### 5. Run
+
+```bash
+# Single instance
+python -m app.main -d "princeton-nlp/SWE-bench_Lite" -i "instance_id"
+
+# Multiple instances
+python -m app.main -d "princeton-nlp/SWE-bench_Lite" -i "id_1" -i "id_2"
+
+# Full dataset with parallel workers
+python -m app.main -d "princeton-nlp/SWE-bench_Lite" -w 3
+
+# With GitHub token
+python -m app.main -d "dataset_name" -g "your_github_token"
+
+# Resume from predictions file
+python -m app.main -d "dataset_name" -f "predictions_20231215_143022.json"
+```
+
+## How It Works
+
+```
+GitHub Issue ─→ Clone Repo ─→ Build Knowledge Graph ─→ Init Container
+                                                            │
+                ┌───────────────────────────────────────────┘
+                ▼
+         LLM Analysis ─→ Generate Patch ─→ Execute in Container
+                │                                    │
+                │         ┌──────────────────────────┘
+                │         ▼
+                │    Bug Reproduced?
+                │     ├─ Yes → Save Results (patch, tests, commands)
+                └─────┤
+                      └─ No  → Retry with refined context
+```
 
 ## Project Structure
 
-* `app/main.py`: Main program entry
-* `app/configuration/`: Configuration-related code
-* `app/docker/`: Docker container management code
-* `app/lang_graph/`: Language graph-related code
-* `app/services/`: Various service implementations (knowledge graph, repository, LLM, etc.)
+```
+app/
+├── main.py              # Entry point & async orchestration
+├── configuration/       # Settings via pydantic-settings
+├── docker/              # Container management (pexpect-based)
+├── lang_graph/          # LangGraph state machines & nodes
+│   └── nodes/           # Individual workflow nodes
+└── services/            # Core services
+    ├── knowledge_graph  # Neo4j knowledge graph builder
+    ├── repository       # Git operations
+    ├── llm              # Model initialization
+    └── database         # PostgreSQL interactions
+```
 
 ## Notes
 
-* Ensure Docker service is running
-* For private repositories, provide a valid GitHub token
-* Large repositories may require more time and memory for analysis
+- Docker must be running before starting Echo
+- Provide a valid GitHub token for private repositories
+- Large repositories may require more time and memory for analysis
+- Knowledge graphs are cleared after each issue to manage Neo4j memory
