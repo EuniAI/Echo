@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_file_encoding="utf-8", env_prefix="PROMETHEUS_"
     )
+
     # Logging
     LOGGING_LEVEL: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
@@ -21,22 +22,24 @@ class Settings(BaseSettings):
     KNOWLEDGE_GRAPH_MAX_AST_DEPTH: int
     KNOWLEDGE_GRAPH_CHUNK_SIZE: int
     KNOWLEDGE_GRAPH_CHUNK_OVERLAP: int
-    MAX_TOKEN_PER_NEO4J_RESULT: int
 
     # LLM models
     ADVANCED_MODEL: str
     BASE_MODEL: str
 
     # API Keys
-    ANTHROPIC_API_KEY: str
-    GEMINI_API_KEY: str
-    OPENAI_FORMAT_BASE_URL: str
-    OPENAI_FORMAT_API_KEY: str
+    ANTHROPIC_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
+    OPENAI_FORMAT_BASE_URL: Optional[str] = None
+    OPENAI_FORMAT_API_KEY: Optional[str] = None
 
     # Model parameters
-    MAX_INPUT_TOKENS: int
-    TEMPERATURE: float
-    MAX_OUTPUT_TOKENS: int
+    ADVANCED_MODEL_TEMPERATURE: Optional[float] = None
+
+    BASE_MODEL_TEMPERATURE: Optional[float] = None
+
+    # Database
+    DATABASE_URL: str
 
 
 settings = Settings()

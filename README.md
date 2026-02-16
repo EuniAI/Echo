@@ -13,7 +13,7 @@ This agent is used for automatically reproducing software bugs by utilizing larg
 
 ## Requirements
 
-* Python 3.8+
+* Python 3.11+
 * Neo4j database
 * Docker
 * Git
@@ -24,6 +24,7 @@ This agent is used for automatically reproducing software bugs by utilizing larg
    ```bash
    pip install hatchling
    pip install .
+   pip install git+https://github.com/SWE-bench/SWE-bench@v4.1.0
    ```
 2. ### Create the working directory to store logs and cloned repositories:
 
@@ -53,6 +54,39 @@ python -m app.main --dataset_name="your_dataset" --github_token="your_token"
 * `--dataset_name`, `-d`: SWE-bench dataset name (required)
 * `--github_token`, `-g`: GitHub access token (optional)
 * `--file`, `-f`: File to save the prediction results (defaults to `predictions_XXX.json` with a timestamp)
+
+## Start Services
+
+### PostgreSQL Service
+
+Start PostgreSQL using Docker:
+
+```bash
+docker run -d \
+  -p 5432:5432 \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=postgres \
+  postgres
+```
+
+### Neo4j Service
+
+Start Neo4j using Docker:
+
+```bash
+docker run -d \
+  -p 7474:7474 \
+  -p 7687:7687 \
+  -e NEO4J_AUTH=neo4j/password \
+  -e NEO4J_PLUGINS='["apoc"]' \
+  -e NEO4J_dbms_memory_heap_initial__size=4G \
+  -e NEO4J_dbms_memory_heap_max__size=8G \
+  -e NEO4J_dbms_memory_pagecache_size=4G \
+  neo4j
+```
+
+You should first start neo4j service then setting the config of you neo4j
 
 ## Workflow
 

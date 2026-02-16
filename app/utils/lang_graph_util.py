@@ -8,7 +8,7 @@ from langchain_core.messages import (
 )
 from langchain_core.output_parsers import StrOutputParser
 
-from app.utils.neo4j_util import neo4j_data_for_context_generator
+from app.utils.knowledge_graph_utils import knowledge_graph_data_for_context_generator
 
 
 def check_remaining_steps(
@@ -67,11 +67,18 @@ def extract_last_tool_messages(messages: Sequence[BaseMessage]) -> Sequence[Tool
 
 
 def transform_tool_messages_to_str(messages: Sequence[ToolMessage]) -> str:
-    result = ""
+    # Aggregate all artifacts from the tool messages
+    total_artifacts = []
     for message in messages:
-        for context in neo4j_data_for_context_generator(message.artifact):
-            result += str(context)
-            result += "\n"
+        # only process messages that have artifacts
+        if message.artifact:
+            total_artifacts.extend(message.artifact)
+
+    # Convert the aggregated artifacts to a string representation
+    result = ""
+    for context in knowledge_graph_data_for_context_generator(total_artifacts):
+        result += str(context)
+        result += "\n"
     return result
 
 

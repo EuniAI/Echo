@@ -1,7 +1,6 @@
 import functools
 from typing import Mapping, Optional, Sequence
 
-import neo4j
 from langchain_core.language_models.chat_models import BaseChatModel
 from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
@@ -16,15 +15,15 @@ from app.lang_graph.nodes.bug_reproducing_write_message_node import (
     BugReproducingWriteMessageNode,
 )
 from app.lang_graph.nodes.bug_reproducing_write_node import BugReproducingWriteNode
-from app.lang_graph.nodes.bug_reproduction_context_message_node import (
-    BugReproductionContextMessageNode,
-)
 from app.lang_graph.nodes.context_retrieval_subgraph_node import ContextRetrievalSubgraphNode
 from app.lang_graph.nodes.git_diff_node import GitDiffNode
 from app.lang_graph.nodes.git_reset_node import GitResetNode
+from app.lang_graph.nodes.issue_bug_reproduction_context_message_node import (
+    IssueBugReproductionContextMessageNode,
+)
 from app.lang_graph.nodes.reset_messages_node import ResetMessagesNode
 from app.lang_graph.nodes.update_container_node import UpdateContainerNode
-from app.lang_graph.states.bug_reproduction_state import BugReproductionState
+from app.lang_graph.subgraphs.bug_reproduction_state import BugReproductionState
 
 
 class BugReproductionSubgraph:
@@ -41,8 +40,6 @@ class BugReproductionSubgraph:
         container: BaseContainer,
         kg: KnowledgeGraph,
         git_repo: GitRepository,
-        neo4j_driver: neo4j.Driver,
-        max_token_per_neo4j_result: int,
         test_commands: Optional[Sequence[str]] = None,
     ):
         """
@@ -54,22 +51,18 @@ class BugReproductionSubgraph:
             container: Docker-based sandbox for running code.
             kg: Codebase knowledge graph used for context retrieval.
             git_repo: Git repository interface for codebase manipulation.
-            neo4j_driver: Neo4j driver used for graph traversal.
-            max_token_per_neo4j_result: Truncation budget per retrieved context chunk.
             test_commands: Optional list of test commands to verify reproduction success.
         """
         self.git_repo = git_repo
 
         # Step 1: Generate initial system messages based on issue data
-        bug_reproduction_context_message_node = BugReproductionContextMessageNode()
+        issue_bug_reproduction_context_message_node = IssueBugReproductionContextMessageNode()
 
         # Step 2: Retrieve relevant code/documentation context from the knowledge graph
         context_retrieval_subgraph_node = ContextRetrievalSubgraphNode(
             base_model,
             kg,
             git_repo.playground_path,
-            neo4j_driver,
-            max_token_per_neo4j_result,
             "bug_reproducing_query",
             "bug_reproducing_context",
         )
@@ -77,7 +70,7 @@ class BugReproductionSubgraph:
         # Step 3: Write a patch to reproduce the bug
         bug_reproducing_write_message_node = BugReproducingWriteMessageNode()
         bug_reproducing_write_node = BugReproducingWriteNode(
-            advanced_model, git_repo.playground_path
+            advanced_model, git_repo.playground_path, kg
         )
         bug_reproducing_write_tools = ToolNode(
             tools=bug_reproducing_write_node.tools,
@@ -128,8 +121,8 @@ class BugReproductionSubgraph:
 
         # Add nodes to the state machine
         workflow.add_node(
-            "bug_reproduction_context_message_node",
-            bug_reproduction_context_message_node,
+            "issue_bug_reproduction_context_message_node",
+            issue_bug_reproduction_context_message_node,
         )
         workflow.add_node("context_retrieval_subgraph_node", context_retrieval_subgraph_node)
         workflow.add_node("bug_reproducing_write_message_node", bug_reproducing_write_message_node)
@@ -152,9 +145,9 @@ class BugReproductionSubgraph:
         workflow.add_node("git_reset_node", git_reset_node)
 
         # Define transitions between nodes
-        workflow.set_entry_point("bug_reproduction_context_message_node")
+        workflow.set_entry_point("issue_bug_reproduction_context_message_node")
         workflow.add_edge(
-            "bug_reproduction_context_message_node", "context_retrieval_subgraph_node"
+            "issue_bug_reproduction_context_message_node", "context_retrieval_subgraph_node"
         )
         workflow.add_edge("context_retrieval_subgraph_node", "bug_reproducing_write_message_node")
         workflow.add_edge("bug_reproducing_write_message_node", "bug_reproducing_write_node")
@@ -223,7 +216,7 @@ class BugReproductionSubgraph:
         issue_title: str,
         issue_body: str,
         issue_comments: Sequence[Mapping[str, str]],
-        recursion_limit: int = 200,
+        recursion_limit: int = 150,
     ):
         """
         Run the bug reproduction subgraph.
@@ -243,7 +236,7 @@ class BugReproductionSubgraph:
             "issue_title": issue_title,
             "issue_body": issue_body,
             "issue_comments": issue_comments,
-            "max_refined_query_loop": 3,
+            "max_refined_query_loop": 2,
         }
 
         output_state = self.subgraph.invoke(input_state, config)

@@ -7,7 +7,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 
 from app.graph.knowledge_graph import KnowledgeGraph
-from app.lang_graph.states.context_retrieval_state import ContextRetrievalState
+from app.lang_graph.subgraphs.context_retrieval_state import ContextRetrievalState
 
 
 class ContextRefineStructuredOutput(BaseModel):
@@ -90,9 +90,7 @@ If additional context is needed:
         )
         structured_llm = model.with_structured_output(ContextRefineStructuredOutput)
         self.model = prompt | structured_llm
-        self._logger = logging.getLogger(
-            f"thread-{threading.get_ident()}.prometheus.lang_graph.nodes.context_refine_node"
-        )
+        self._logger = logging.getLogger(f"thread-{threading.get_ident()}.{__name__}")
 
     def format_refine_message(self, state: ContextRetrievalState):
         original_query = state["query"]
