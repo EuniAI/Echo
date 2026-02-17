@@ -1,8 +1,10 @@
 <div align="center">
 
-# Echo
-
-**Automated Bug Reproduction Agent powered by LLMs & Knowledge Graphs**
+<img src="./docs/images/echo.jpg" alt="Echo Logo" width="200">
+  <h1 style="border-bottom: none;">
+    <b><a href="https://euni.ai/" target="_blank">Echo</a></b><br>
+    ⚡ Automated Bug Reproduction Agent powered by LLMs & Knowledge Graphs ⚡
+  </h1>
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org)
 [![Docker](https://img.shields.io/badge/docker-required-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com)
